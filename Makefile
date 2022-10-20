@@ -8,6 +8,9 @@ build-mac:
 	GOOS=darwin GOARCH=amd64 go build -o yace-mac-amd64 cmd/yace/main.go
 	GOOS=darwin GOARCH=arm64 go build -o yace-mac-arm64 cmd/yace/main.go
 
+push:
+	imager buildpush . -d all -r yace --multi-arch
+
 test:
 	go test -v -race -count=1 ./...
 

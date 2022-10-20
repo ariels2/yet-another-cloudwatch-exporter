@@ -7,6 +7,4 @@ steps:
       queue: v1
     commands: |
       go mod vendor
-      make build
-      echo '--- Snyk scan'
-      bk-snyk
+      make push
