@@ -7,4 +7,4 @@ steps:
       queue: v1
     commands: |
       go mod vendor
-      make push
+      imager buildpush . -d all -r yace --multi-arch
