@@ -7,7 +7,6 @@ steps:
       queue: v1
     commands: |
       go mod vendor
-      make build-arm64
-      make build-amd64
+      make build
       echo '--- Snyk scan'
       bk-snyk
