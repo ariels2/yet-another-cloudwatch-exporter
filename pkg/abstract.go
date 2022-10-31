@@ -118,7 +118,7 @@ func scrapeAwsData(
 						logger: jobLogger,
 					}
 
-					metrics := scrapeCustomMetricJob(ctx, customMetricJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore, jobLogger)
+					metrics := scrapeCustomMetricJobUsingMetricData(ctx, customMetricJob, config.Discovery.ExportedTagsOnMetrics, region, result.Account, clientCloudwatch, cloudwatchSemaphore, tagSemaphore, jobLogger, metricsPerQuery)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -365,4 +365,113 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	wg.Wait()
 	return resources, cw
+}
+
+func scrapeCustomMetricJobUsingMetricData(
+	ctx context.Context,
+	customMetricsJob *CustomMetrics,
+	tagsOnMetrics exportedTagsOnMetrics,
+	region string,
+	accountId *string,
+	clientCloudwatch cloudwatchInterface,
+	cloudwatchSemaphore chan struct{},
+	tagSemaphore chan struct{},
+	logger Logger,
+	metricsPerQuery int) (cw []*cloudwatchData) {
+	mux := &sync.Mutex{}
+	var wg sync.WaitGroup
+
+	getMetricDatas := getMetricDataForQueriesToFetchCustomMetrics(ctx, customMetricsJob, region, accountId, tagsOnMetrics, clientCloudwatch, tagSemaphore, logger)
+	metricDataLength := len(getMetricDatas)
+	if metricDataLength == 0 {
+		logger.Debug("No metrics data found")
+		return
+	}
+
+	maxMetricCount := metricsPerQuery
+	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+
+	wg.Add(partition)
+
+	for i := 0; i < metricDataLength; i += maxMetricCount {
+		go func(i int) {
+			cloudwatchSemaphore <- struct{}{}
+
+			defer func() {
+				defer wg.Done()
+				<-cloudwatchSemaphore
+			}()
+
+			end := i + maxMetricCount
+			if end > metricDataLength {
+				end = metricDataLength
+			}
+			input := getMetricDatas[i:end]
+			filter := createGetMetricDataInput(input, &customMetricsJob.Namespace, customMetricsJob.Length, customMetricsJob.Delay, customMetricsJob.RoundingPeriod, logger)
+			data := clientCloudwatch.getMetricData(ctx, filter)
+			if data != nil {
+				output := make([]*cloudwatchData, 0)
+				for _, MetricDataResult := range data.MetricDataResults {
+					getMetricData, err := findGetMetricDataById(input, *MetricDataResult.Id)
+					if err == nil {
+						if len(MetricDataResult.Values) != 0 {
+							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
+							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
+						}
+						output = append(output, &getMetricData)
+					}
+				}
+				mux.Lock()
+				cw = append(cw, output...)
+				mux.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	return cw
+}
+
+func getMetricDataForQueriesToFetchCustomMetrics(
+	ctx context.Context,
+	customMetricJob *CustomMetrics,
+	region string,
+	accountId *string,
+	tagsOnMetrics exportedTagsOnMetrics,
+	clientCloudwatch cloudwatchInterface,
+	tagSemaphore chan struct{},
+	logger Logger) []cloudwatchData {
+	var getMetricDatas []cloudwatchData
+
+	// For every metric of the job
+	for _, metric := range customMetricJob.Metrics {
+		// Get the full list of metrics
+		// This includes, for this metric the possible combinations
+		// of dimensions and value of dimensions with data
+		tagSemaphore <- struct{}{}
+
+		metricsList, err := getFullMetricsList(ctx, customMetricJob.Namespace, metric, clientCloudwatch)
+		<-tagSemaphore
+
+		if err != nil {
+			logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customMetricJob.Namespace)
+			continue
+		}
+
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(
+			region,
+			accountId,
+			customMetricJob.Namespace,
+			customMetricJob.CustomTags,
+			tagsOnMetrics,
+			// we are not filtering by dimensions for custom metrics
+			[]*string{},
+			// resource tags are not supported for custom metrics
+			[]*taggedResource{},
+			metricsList.Metrics,
+			customMetricJob.DimensionNameRequirements,
+			metric,
+		)...)
+	}
+	return getMetricDatas
 }
