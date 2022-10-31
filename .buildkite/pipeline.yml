@@ -1,0 +1,10 @@
+steps:
+  - label: ':brain: Everything'
+    env:
+      SEGMENT_CONTEXTS: "snyk,aws-credentials"
+      SEGMENT_BUILDKITE_IMAGE: 'buildkite-agent-golang1.18'
+    agents:
+      queue: v1
+    commands: |
+      go mod vendor
+      imager buildpush . -d all -r yace --multi-arch

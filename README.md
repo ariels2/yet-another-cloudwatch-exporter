@@ -73,6 +73,7 @@ We will contact you as soon as possible.
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
@@ -86,6 +87,7 @@ We will contact you as soon as possible.
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
+  * storagegateway (AWS/StorageGateway) - On-premises access to cloud storage
   * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
   * asg (AWS/AutoScaling) - Auto Scaling Group
@@ -196,7 +198,7 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 
 ```yaml
 apiVersion: v1alpha1
-sts-endpoint: eu-west-1
+sts-region: eu-west-1
 discovery:
   exportedTagsOnMetrics:
     ec2:
@@ -348,7 +350,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600      
+        length: 600
       - name: CapacityUtilization
         statistics:
           - Average
@@ -378,7 +380,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600		
+        length: 600
   - type: backup
     regions:
       - eu-central-1
@@ -390,7 +392,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600		
+        length: 600
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
@@ -546,7 +548,11 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 ```
 
 ## Kubernetes Installation
+### Install with HELM
+* [README](charts/yet-another-cloudwatch-exporter/README.md)
 
+
+### Install with manifests
 ```yaml
 ---
 apiVersion: v1
@@ -654,7 +660,7 @@ The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.g
   - `exporter.NewLogrusLogger(log.StandardLogger())` is an acceptable default
 
 The update definition also includes an exported slice of [Metrics](./pkg/update.go#L11) which includes AWS API call metrics. These can be registered with the provided `registry` if you want them
-included in the AWS scrape results. If you are using multiple instances of `registry` it might make more sense to register these metrics in the application using YACE as a library to better 
+included in the AWS scrape results. If you are using multiple instances of `registry` it might make more sense to register these metrics in the application using YACE as a library to better
 track them over the lifetime of the application.
 
 ## Troubleshooting / Debugging
