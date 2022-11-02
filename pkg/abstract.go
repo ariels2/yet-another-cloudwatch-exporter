@@ -226,7 +226,6 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	if len(resources) == 0 {
 		logger.Info("No tagged resources made it through filtering")
-		return
 	}
 
 	svc := SupportedServices.GetService(job.Type)
