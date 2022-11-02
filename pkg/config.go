@@ -33,6 +33,7 @@ type Job struct {
 	Roles                     []Role    `yaml:"roles"`
 	SearchTags                []Tag     `yaml:"searchTags"`
 	CustomTags                []Tag     `yaml:"customTags"`
+	SupportUntagged           bool      `yaml:"supportUntagged"`
 	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
 	Metrics                   []*Metric `yaml:"metrics"`
 	Length                    int64     `yaml:"length"`
