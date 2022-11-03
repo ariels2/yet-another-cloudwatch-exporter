@@ -470,6 +470,7 @@ func getMetricDataForQueriesToFetchCustomMetrics(
 			[]*taggedResource{},
 			metricsList.Metrics,
 			customMetricJob.DimensionNameRequirements,
+			customMetricJob.SupportUntagged,
 			metric,
 		)...)
 	}

@@ -69,6 +69,7 @@ type CustomMetrics struct {
 	Delay                     int64     `yaml:"delay"`
 	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
 	CustomTags                []Tag     `yaml:"customTags"`
+	SupportUntagged           bool      `yaml:"supportUntagged"`
 	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
 	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
 }
