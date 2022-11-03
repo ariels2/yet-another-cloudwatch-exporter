@@ -70,6 +70,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		tagsOnMetrics             exportedTagsOnMetrics
 		dimensionRegexps          []*string
 		dimensionNameRequirements []string
+		supportUntagged           bool
 		resources                 []*taggedResource
 		metricsList               []*cloudwatch.Metric
 		m                         *Metric
@@ -459,7 +460,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metricDatas := getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
+			metricDatas := getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.supportUntagged, tt.args.m)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}

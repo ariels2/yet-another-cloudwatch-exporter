@@ -34,6 +34,7 @@ type Job struct {
 	Roles                     []Role    `yaml:"roles"`
 	SearchTags                []Tag     `yaml:"searchTags"`
 	CustomTags                []Tag     `yaml:"customTags"`
+	SupportUntagged           bool      `yaml:"supportUntagged"`
 	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
 	Metrics                   []*Metric `yaml:"metrics"`
 	Length                    int64     `yaml:"length"`
@@ -68,6 +69,7 @@ type CustomMetrics struct {
 	Delay                     int64     `yaml:"delay"`
 	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
 	CustomTags                []Tag     `yaml:"customTags"`
+	SupportUntagged           bool      `yaml:"supportUntagged"`
 	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
 	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
 }

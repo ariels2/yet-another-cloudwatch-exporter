@@ -272,7 +272,7 @@ func getFullMetricsList(ctx context.Context, namespace string, metric *Metric, c
 	return &res, nil
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, supportUntagged bool, m *Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*taggedResource
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -297,7 +297,10 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			}
 		}
 	}
+
 	for _, cwMetric := range metricsList {
+		skip := false
+		alreadyFound := false
 		r := &taggedResource{
 			ARN:       "global",
 			Namespace: namespace,
@@ -309,31 +312,37 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
 				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
+					if !alreadyFound {
+						skip = true
+					}
 					break
 				} else {
+					alreadyFound = true
 					r = d
 				}
 			}
 		}
 
-		for _, stats := range m.Statistics {
-			id := fmt.Sprintf("id_%d", rand.Int())
-			metricTags := r.metricTags(tagsOnMetrics)
-			getMetricsData = append(getMetricsData, cloudwatchData{
-				ID:                     &r.ARN,
-				MetricID:               &id,
-				Metric:                 &m.Name,
-				Namespace:              &namespace,
-				Statistics:             []string{stats},
-				NilToZero:              m.NilToZero,
-				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
-				Tags:                   metricTags,
-				CustomTags:             customTags,
-				Dimensions:             cwMetric.Dimensions,
-				Region:                 &region,
-				AccountId:              accountId,
-				Period:                 int64(m.Period),
-			})
+		if !skip || supportUntagged {
+			for _, stats := range m.Statistics {
+				id := fmt.Sprintf("id_%d", rand.Int())
+				metricTags := r.metricTags(tagsOnMetrics)
+				getMetricsData = append(getMetricsData, cloudwatchData{
+					ID:                     &r.ARN,
+					MetricID:               &id,
+					Metric:                 &m.Name,
+					Namespace:              &namespace,
+					Statistics:             []string{stats},
+					NilToZero:              m.NilToZero,
+					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+					Tags:                   metricTags,
+					CustomTags:             customTags,
+					Dimensions:             cwMetric.Dimensions,
+					Region:                 &region,
+					AccountId:              accountId,
+					Period:                 int64(m.Period),
+				})
+			}
 		}
 	}
 	return getMetricsData
